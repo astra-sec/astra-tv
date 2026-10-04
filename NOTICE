@@ -26,3 +26,7 @@ These graphics are separate from the Apache-licensed application code.
 Source hashes, dimensions and composition details are recorded in
 branding/provenance.json. The composition script is
 scripts/make-branding.py.
+
+Documentation screenshots demonstrate the application interface.
+Programme footage and channel marks shown in them belong to their respective
+rights holders and are not covered by the application's Apache License 2.0.

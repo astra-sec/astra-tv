@@ -1,0 +1,68 @@
+{
+  "method": "Deterministic Pillow alpha composition; no AI generation or artwork redrawing",
+  "artwork_source_name": "青色电视与简约卫星天线.png",
+  "icon_copied_byte_for_byte": true,
+  "original_file_sha256": "5a179cd820fd5d36ec7db55b54ce41d7cdbcc7ca05bc1aa1b8f1f863b73f42e0",
+  "icon": {
+    "file": "app/src/main/res/drawable-nodpi/astra_icon.png",
+    "size": [
+      1254,
+      1254
+    ],
+    "mode": "RGBA",
+    "file_sha256": "5a179cd820fd5d36ec7db55b54ce41d7cdbcc7ca05bc1aa1b8f1f863b73f42e0",
+    "rgba_sha256": "2b5c0e8d6c8afc3b202701c92bd0bca4df117b1d6d0ba6974fce0f6a0ec57af1",
+    "alpha_extrema": [
+      0,
+      255
+    ]
+  },
+  "banner": {
+    "file": "app/src/main/res/drawable-xhdpi/astra_banner.png",
+    "size": [
+      320,
+      180
+    ],
+    "mode": "RGB",
+    "file_sha256": "f7926508a242f43c4478ea15bfa1c8b4eac1fc489143c38a513a2486359f82ff",
+    "rgba_sha256": "7b28fdc27893517ec468865378635193a9df1535aeb1f90860762d237f5ff131",
+    "alpha_extrema": [
+      255,
+      255
+    ]
+  },
+  "master": {
+    "file": "branding/astra-banner-master.png",
+    "size": [
+      1280,
+      720
+    ],
+    "mode": "RGB",
+    "file_sha256": "b1c344d7e56556f555d87137a0fc5309043bbb43e900fe5c772c68d1d0de45fd",
+    "rgba_sha256": "ff77be58be447ae60ad5569a6e9ec1cf15f773a10829b2695ca206b52a7c032e",
+    "alpha_extrema": [
+      255,
+      255
+    ]
+  },
+  "composition": {
+    "background": "#DCEAF4",
+    "icon_alpha_crop": [
+      32,
+      227,
+      1224,
+      1083
+    ],
+    "icon_destination_xy": [
+      306,
+      120
+    ],
+    "icon_destination_size": [
+      668,
+      480
+    ],
+    "resampling": "LANCZOS, proportional",
+    "layout": "centered artwork, two thirds of canvas height, matching previous banner margins",
+    "title": null
+  }
+}

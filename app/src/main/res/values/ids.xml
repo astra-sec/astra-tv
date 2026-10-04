@@ -1,0 +1,11 @@
+<resources>
+    <item name="navigation_channels" type="id" />
+    <item name="navigation_settings" type="id" />
+    <item name="channel_list" type="id" />
+    <item name="settings_list" type="id" />
+    <item name="first_setup" type="id" />
+    <item name="setup_source" type="id" />
+    <item name="setup_epg" type="id" />
+    <item name="setup_save" type="id" />
+    <item name="setup_error" type="id" />
+</resources>

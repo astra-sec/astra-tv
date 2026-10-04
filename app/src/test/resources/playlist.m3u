@@ -1,0 +1,29 @@
+#EXTM3U
+#EXTINF:-1 tvg-name="CCTV1" tvg-chno="1" group-title="公共频道",CCTV-1 综合
+https://example.test/live/general.ts
+#EXTINF:-1 tvg-name="CCTV5" tvg-chno="5" group-title="公共频道",CCTV-5 体育
+https://example.test/live/sports.ts
+#EXTINF:-1 tvg-name="CCTV5+" tvg-chno="55" group-title="公共频道",CCTV-5+ 体育赛事
+https://example.test/live/sports-events.ts
+#EXTINF:-1 tvg-name="CCTV4" tvg-chno="41" group-title="公共频道",CCTV-4 中文国际欧洲
+https://example.test/live/international-europe.ts
+#EXTINF:-1 tvg-name="CCTV4" tvg-chno="42" group-title="公共频道",CCTV-4 中文国际美洲
+https://example.test/live/international-america.ts
+#EXTINF:-1 tvg-name="CCTV16" tvg-chno="164" group-title="公共频道",CCTV-16 奥林匹克 4K
+https://example.test/live/olympics-4k.ts
+#EXTINF:-1 tvg-name="CCTV4K" tvg-chno="40" group-title="公共频道",CCTV-4K 超高清
+https://example.test/live/ultra.ts
+#EXTINF:-1 tvg-name="CETV1" tvg-chno="21" group-title="教育频道",CETV-1
+https://example.test/live/education.ts
+#EXTINF:-1 tvg-chno="31" group-title="电影频道",CHC家庭影院
+https://example.test/live/family-cinema.ts
+#EXTINF:-1 tvg-chno="32" group-title="电影频道",CHC影迷电影
+https://example.test/live/fan-cinema.ts
+#EXTINF:-1 tvg-id="city-news" tvg-name="自定义新闻别名" tvg-chno="201" group-title="本地频道" tvg-logo="../logos/local.png",城镇新闻
+streams/local-news.ts
+#EXTINF:-1 tvg-chno="202" group-title="本地频道",城镇文体
+http://example.test/live/local-sports.ts
+#EXTINF:-1 tvg-id="city-news" tvg-chno="203" group-title="本地频道",城镇新闻别名
+streams/local-news.ts
+#EXTINF:-1 tvg-chno="99" group-title="国际频道",CGTN英语
+https://example.test/live/english.ts

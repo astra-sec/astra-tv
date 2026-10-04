@@ -1,0 +1,28 @@
+Astra TV 0.4.1
+Copyright 2026 Astra TV contributors.
+Own application code: Apache License, Version 2.0 (LICENSE).
+
+AndroidX Media3 1.6.1, Android Open Source Project / AndroidX contributors.
+Apache License, Version 2.0.
+Official FFmpeg decoder Java/JNI bridge vendored in ffmpeg-audio.
+See ffmpeg-audio/LICENSE-MEDIA3 and SOURCE-AND-LICENSE.md.
+
+FFmpeg 6.0.1, FFmpeg contributors.
+LGPL version 2.1 or later; GPL/nonfree functionality disabled.
+Corresponding source is pinned as the third_party/ffmpeg Git submodule:
+https://github.com/FFmpeg/FFmpeg.git, tag n6.0.1,
+commit c41ff724ede7da657762d61097e26fac296c53bf.
+The corresponding-source ZIP expands the submodule into full source files.
+Exact audio-only configure/link command is scripts/build-ffmpeg.sh.
+Copies of the LGPL/GPL license texts supplied by upstream are in that directory.
+Built library names: libffmpegJNI.so, arm64-v8a and armeabi-v7a.
+The Kotlin application loads this module dynamically through the Media3 bridge.
+
+Launcher icon: artwork supplied by the user as
+青色电视与简约卫星天线.png, copied byte-for-byte into the application.
+The TV banner uses the same artwork, proportionally resized and composited
+at the center of a light blue background without text; no AI redrawing is used.
+These graphics are separate from the Apache-licensed application code.
+Source hashes, dimensions and composition details are recorded in
+branding/provenance.json. The composition script is
+scripts/make-branding.py.

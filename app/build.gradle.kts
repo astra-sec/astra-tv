@@ -9,8 +9,8 @@ android {
         applicationId = "org.astrasec.tv"
         minSdk = 21
         targetSdk = 35
-        versionCode = 10
-        versionName = "0.4.1"
+        versionCode = 11
+        versionName = "0.4.2"
     }
     buildFeatures { buildConfig = true }
     buildTypes {
@@ -31,6 +31,7 @@ android {
 }
 dependencies {
     implementation("androidx.media3:media3-exoplayer:1.6.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.6.1")
     implementation("androidx.media3:media3-ui:1.6.1")
     implementation(project(":ffmpeg-audio"))
     testImplementation("junit:junit:4.13.2")

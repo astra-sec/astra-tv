@@ -8,7 +8,7 @@ Astra TV 是用 Kotlin 编写的 Android / Android TV IPTV 客户端，包名和
 
 ## 安装与首次设置
 
-安装 `astra-tv-0.4.1.apk`。首次打开填写 HTTP/HTTPS 的 M3U 直播源地址；直播源没有预设值，安装包不内置频道列表。节目单使用一个可配置的 XMLTV 地址，支持 XML 或 XML.gz，默认值是：
+安装 `astra-tv-0.4.2.apk`。首次打开填写 HTTP/HTTPS 的 M3U 频道列表地址；直播源没有预设值，安装包不内置频道列表。节目单使用一个可配置的 XMLTV 地址，支持 XML 或 XML.gz，默认值是：
 
 `http://epg.51zmt.top:8000/e.xml.gz`
 
@@ -35,7 +35,9 @@ Astra TV 是用 Kotlin 编写的 Android / Android TV IPTV 客户端，包名和
 
 ## 播放与兼容性
 
-使用 AndroidX Media3 1.6.1 播放 HTTP/HTTPS MPEG-TS 直播，视频经 Android MediaCodec 优先使用设备硬件解码器，并可在设置中选择固件提供的解码器。初始化失败或部分运行错误会尝试兼容的备用解码器。HLS、DASH、RTSP 和直接 UDP 来源尚未实现专用播放路径。
+使用 AndroidX Media3 1.6.1 播放 HTTP/HTTPS MPEG-TS 和 HLS 直播。频道地址的路径以 `.m3u8` 结尾时使用 HLS 播放，支持查询参数、大写扩展名、主播放列表与媒体播放列表；频道指定的 User-Agent 和 Referer 同样用于 HLS 请求。视频经 Android MediaCodec 优先使用设备硬件解码器，并可在设置中选择固件提供的解码器。初始化失败或部分运行错误会尝试兼容的备用解码器。无 `.m3u8` 扩展名的 HLS、DASH、RTSP 和直接 UDP 来源尚未实现专用识别或播放路径。
+
+直播源设置填写频道 M3U 列表，列表内可以包含 HLS 频道；单频道 `.m3u8` 播放地址不应直接当作频道列表填写。公开列表中的失效地址、地区限制和需要额外认证的频道仍取决于来源本身。
 
 音频优先使用系统解码；设备不支持的 MP2、AAC、AC3 或 EAC3 可回退到 FFmpeg 音频扩展。FFmpeg 6.0.1 只启用 `mp3`（包含 MP1/MP2）、AAC、AC3、EAC3，禁用 GPL、nonfree、视频编解码、网络及多余组件。HEVC、4K、10-bit 等视频能否播放取决于设备硬件。网络重连使用有上限的指数退避。
 

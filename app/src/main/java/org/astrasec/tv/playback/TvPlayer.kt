@@ -1,6 +1,7 @@
 package org.astrasec.tv.playback
 
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -13,12 +14,14 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.util.Util
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.mediacodec.MediaCodecDecoderException
 import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import androidx.media3.exoplayer.mediacodec.MediaCodecRenderer
@@ -308,18 +311,28 @@ class TvPlayer(context: Context, private val listener: Listener) {
             .setConnectTimeoutMs(6_000)
             .setReadTimeoutMs(8_000)
             .setAllowCrossProtocolRedirects(true)
-        val extractors = DefaultExtractorsFactory().setTsExtractorMode(TsExtractor.MODE_SINGLE_PMT)
+        val uri = Uri.parse(channel.url)
         val mediaItem = MediaItem.Builder()
             .setMediaId(channel.url)
-            .setUri(channel.url)
-            .setMimeType(MimeTypes.VIDEO_MP2T)
+            .setUri(uri)
             .setMediaMetadata(MediaMetadata.Builder().setTitle(channel.name).build())
             .build()
-        val source = ProgressiveMediaSource.Factory(dataSource, extractors)
-            // Fail over to a new live connection rather than retrying an old byte range forever.
-            .setLoadErrorHandlingPolicy(DefaultLoadErrorHandlingPolicy(1))
-            .setContinueLoadingCheckIntervalBytes(64 * 1024)
-            .createMediaSource(mediaItem)
+        val isHls = Util.inferContentType(uri) == C.CONTENT_TYPE_HLS
+        val errorPolicy = DefaultLoadErrorHandlingPolicy(1)
+        val source = if (isHls) {
+            // Reuse channel headers for the manifest, variants, segments and encryption keys.
+            HlsMediaSource.Factory(dataSource)
+                .setLoadErrorHandlingPolicy(errorPolicy)
+                .createMediaSource(mediaItem)
+        } else {
+            val extractors = DefaultExtractorsFactory().setTsExtractorMode(TsExtractor.MODE_SINGLE_PMT)
+            ProgressiveMediaSource.Factory(dataSource, extractors)
+                // Fail over to a new live connection rather than retrying an old byte range forever.
+                .setLoadErrorHandlingPolicy(errorPolicy)
+                .setContinueLoadingCheckIntervalBytes(64 * 1024)
+                .createMediaSource(mediaItem)
+        }
+        Log.i(TAG, "SOURCE ${if (isHls) "HLS" else "PROGRESSIVE"}")
         listener.onState("正在连接 ${channel.name}…", true)
         instance.setMediaSource(source)
         instance.prepare()

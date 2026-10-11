@@ -13,10 +13,26 @@ android {
         versionName = "0.4.2"
     }
     buildFeatures { buildConfig = true }
+    val unsignedRelease = providers.gradleProperty("astraUnsigned").orNull == "true"
+    val signingStore = providers.environmentVariable("ASTRA_SIGNING_STORE_FILE").orNull
+    val configuredSigning = if (!unsignedRelease && !signingStore.isNullOrBlank()) {
+        signingConfigs.create("configuredRelease") {
+            storeFile = file(signingStore)
+            fun signingValue(name: String) = providers.environmentVariable(name).orNull
+                ?.takeIf { it.isNotBlank() } ?: error("$name is required with ASTRA_SIGNING_STORE_FILE")
+            storePassword = signingValue("ASTRA_SIGNING_STORE_PASSWORD")
+            keyAlias = signingValue("ASTRA_SIGNING_KEY_ALIAS")
+            keyPassword = signingValue("ASTRA_SIGNING_KEY_PASSWORD")
+        }
+    } else null
     buildTypes {
         release {
-            // Local sideload build: stable Android debug signing key also allows updates.
-            signingConfig = signingConfigs.getByName("debug")
+            // Keep local signing unchanged; CI either uses an explicit key or builds unsigned.
+            signingConfig = when {
+                unsignedRelease -> null
+                configuredSigning != null -> configuredSigning
+                else -> signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = false
             // Preserve the supplied PNG artwork without AAPT PNG re-encoding.
             isCrunchPngs = false

@@ -13,6 +13,7 @@ third_party/ffmpeg/lib*/**/*.a
 .build/
 artifacts/
 diagnostics/
+ci-artifacts/
 .DS_Store
 __pycache__/
 *.py[cod]

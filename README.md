@@ -64,6 +64,27 @@ ANDROID_NDK_ROOT=/path/to/android-ndk ./scripts/build-ffmpeg.sh
 
 脚本包含完整 configure 与链接参数，使用 NDK r27、API 21 和 16 KiB ELF 对齐。生成的配置快照属于本机构建产物，不进入版本控制；对应源码及重建步骤完整保留。Media3 Java/JNI 桥代码和许可在 `ffmpeg-audio`。
 
+### GitHub Actions 自动构建
+
+推送到 `main`、向 `main` 提交 Pull Request，或在仓库的 Actions → Android build 中点击 Run workflow，会使用 Ubuntu、JDK 21 和 Android SDK 35 自动构建 APK，并运行单元测试及 release Lint。常规构建使用仓库已有的 ARM 原生音频库，无需拉取或编译 FFmpeg 子模块。
+
+构建成功后，在对应运行页面的 Artifacts 中下载 APK 压缩包，包含按版本号和提交号命名的 APK、SHA256 校验文件及构建信息，保留 30 天。测试和 Lint 报告单独保存 14 天，构建失败时也会尽量上传已有报告。
+
+**未配置签名 Secrets 时，CI 生成 `-unsigned.apk`，必须签名后才能安装。** 本地普通构建仍使用原有开发签名。GitHub 的临时 runner 不复用本机的签名密钥，不能用每次随机生成的 debug 签名制作可覆盖升级的 APK。
+
+如需让 `main` 的自动构建直接生成可安装、可持续升级的包，在仓库 Settings → Secrets and variables → Actions 中配置以下 repository secrets：
+
+| Secret | 内容 |
+| --- | --- |
+| `ASTRA_SIGNING_KEYSTORE_BASE64` | 签名 keystore 文件的 Base64 内容 |
+| `ASTRA_SIGNING_STORE_PASSWORD` | keystore 密码 |
+| `ASTRA_SIGNING_KEY_ALIAS` | 密钥 alias |
+| `ASTRA_SIGNING_KEY_PASSWORD` | 密钥密码 |
+
+只有 `main` 的 push 或手动构建会使用这些密钥；Pull Request 始终生成未签名包。要覆盖已经安装的 Astra TV，必须使用与旧 APK 相同的签名密钥。密钥只在 runner 临时目录还原，不进入仓库、Gradle 缓存或构建产物，工作结束后删除。
+
+本地也可使用 `./gradlew :app:assembleRelease -PastraUnsigned=true` 生成未签名包，或设置 `ASTRA_SIGNING_STORE_FILE`、`ASTRA_SIGNING_STORE_PASSWORD`、`ASTRA_SIGNING_KEY_ALIAS`、`ASTRA_SIGNING_KEY_PASSWORD` 环境变量指定签名。
+
 测试使用 `example.test` 的通用 M3U 样例，覆盖地址解析、元数据、重复频道、节目单格式、匹配、版本隔离和失效边界。设备验证报告保存在本地 `diagnostics/`，不纳入 Git 或源码包。
 
 当前 release 使用本机 Android 开发签名，供本地侧载。签名私钥不在仓库中；不同构建机器需要使用兼容签名才能覆盖同一应用。

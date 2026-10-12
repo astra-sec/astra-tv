@@ -19,6 +19,10 @@ __pycache__/
 *.py[cod]
 *.jks
 *.keystore
+*.p12
+*.pfx
+signing.properties
+keystore.properties
 .env
 .env.*
 ffmpeg-audio/src/main/jniLibs/*/config.h

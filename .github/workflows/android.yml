@@ -43,7 +43,7 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             'platforms;android-35' 'build-tools;34.0.0'
 
-      - name: Restore optional signing key
+      - name: Restore release signing key
         id: signing
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
@@ -52,12 +52,8 @@ jobs:
           ASTRA_KEY_ALIAS: ${{ secrets.ASTRA_SIGNING_KEY_ALIAS }}
           ASTRA_KEY_PASSWORD: ${{ secrets.ASTRA_SIGNING_KEY_PASSWORD }}
         run: |
-          if [[ -z "$ASTRA_KEYSTORE_BASE64" ]]; then
-            echo 'mode=unsigned' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [[ -z "$ASTRA_STORE_PASSWORD" || -z "$ASTRA_KEY_ALIAS" || -z "$ASTRA_KEY_PASSWORD" ]]; then
-            echo 'All four ASTRA_SIGNING secrets are required when a keystore is configured.' >&2
+          if [[ -z "$ASTRA_KEYSTORE_BASE64" || -z "$ASTRA_STORE_PASSWORD" || -z "$ASTRA_KEY_ALIAS" || -z "$ASTRA_KEY_PASSWORD" ]]; then
+            echo 'All four ASTRA_SIGNING secrets are required for main release builds.' >&2
             exit 1
           fi
           key_path="$RUNNER_TEMP/astra-tv-signing.keystore"
@@ -70,7 +66,7 @@ jobs:
         if: steps.signing.outputs.mode != 'signed'
         run: |
           ./gradlew :app:assembleRelease :app:testDebugUnitTest :app:lintRelease \
-            -PastraUnsigned=true --no-daemon --console=plain
+            -PastraUnsigned=true --no-daemon --no-configuration-cache --console=plain
 
       - name: Build signed APK and run checks
         if: steps.signing.outputs.mode == 'signed'
@@ -81,7 +77,7 @@ jobs:
           ASTRA_SIGNING_KEY_PASSWORD: ${{ secrets.ASTRA_SIGNING_KEY_PASSWORD }}
         run: |
           ./gradlew :app:assembleRelease :app:testDebugUnitTest :app:lintRelease \
-            --no-daemon --console=plain
+            --no-daemon --no-configuration-cache --console=plain
 
       - name: Prepare APK artifact
         id: apk
@@ -93,13 +89,31 @@ jobs:
           import json
           import os
           import pathlib
+          import re
           import shutil
+          import subprocess
 
           apk_dir = pathlib.Path('app/build/outputs/apk/release')
           metadata = json.loads((apk_dir / 'output-metadata.json').read_text())
           element, = metadata['elements']
           source = apk_dir / element['outputFile']
           unsigned = os.environ['SIGNING_MODE'] != 'signed'
+          certificate_sha256 = None
+          if not unsigned:
+              apksigner = pathlib.Path(os.environ['ANDROID_HOME']) / 'build-tools/34.0.0/apksigner'
+              verification = subprocess.run(
+                  [str(apksigner), 'verify', '--verbose', '--print-certs', str(source)],
+                  capture_output=True, text=True,
+              )
+              if verification.returncode:
+                  raise SystemExit('APK signature verification failed.')
+              certificates = re.findall(
+                  r'Signer #\d+ certificate SHA-256 digest: ([0-9a-f]+)', verification.stdout,
+              )
+              expected = json.loads(pathlib.Path('docs/signing/astra-sec-release.json').read_text())
+              if certificates != [expected['certificateSha256']]:
+                  raise SystemExit('APK was not signed with the expected Astra Sec certificate.')
+              certificate_sha256, = certificates
           suffix = '-unsigned' if unsigned else ''
           revision = os.environ['GITHUB_SHA'][:7]
           name = f"astra-tv-{element['versionName']}-{revision}{suffix}"
@@ -114,6 +128,7 @@ jobs:
               'versionCode': element['versionCode'],
               'commit': os.environ['GITHUB_SHA'],
               'signed': not unsigned,
+              'certificateSha256': certificate_sha256,
               'sha256': digest,
           }, indent=2) + '\n')
           with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
@@ -123,6 +138,8 @@ jobs:
               stream.write('Build, unit tests and release Lint passed.\n\n')
               stream.write('Signing: **unsigned; sign before installing**.\n' if unsigned
                            else 'Signing: **configured release key**.\n')
+              if certificate_sha256:
+                  stream.write(f'\nVerified certificate SHA256: `{certificate_sha256}`\n')
           PY
 
       - name: Upload APK

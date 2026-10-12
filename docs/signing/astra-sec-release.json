@@ -1,0 +1,11 @@
+{
+  "subject": "CN=Astra Sec,O=Astra Sec",
+  "alias": "astra-release",
+  "keyAlgorithm": "RSA",
+  "keySize": 4096,
+  "certificateSignatureAlgorithm": "SHA256withRSA",
+  "validFrom": "2026-10-12T10:02:36+08:00",
+  "validUntil": "2126-10-12T10:02:36+08:00",
+  "validityDays": 36524,
+  "certificateSha256": "4a07274dddebcd69a6107b0e3bd7f0da1499bbc74d00b9c02abb1cdc88e8daf1"
+}

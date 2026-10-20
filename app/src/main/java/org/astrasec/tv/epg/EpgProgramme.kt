@@ -7,7 +7,10 @@ data class EpgProgramme(
     val endMs: Long,
     val title: String,
     val source: String,
-)
+) {
+    /** Keep the stored source text unchanged so cache reads never decode it repeatedly. */
+    val displayTitle: String get() = ProgrammeText.unescape(title)
+}
 
 /** Schedules use the playlist's stable channel ID, never its position or channel number. */
 class EpgSnapshot(

@@ -580,7 +580,7 @@ class MainActivity : Activity(), TvPlayer.Listener {
     }
 
     private fun programmeLabel(programme: EpgProgramme?): String = programme?.let {
-        "${programmeTime.format(Date(it.startMs))}–${programmeTime.format(Date(it.endMs))}  ${it.title}"
+        "${programmeTime.format(Date(it.startMs))}–${programmeTime.format(Date(it.endMs))}  ${it.displayTitle}"
     } ?: "暂无节目单"
 
     private fun updateProgrammeUi() {

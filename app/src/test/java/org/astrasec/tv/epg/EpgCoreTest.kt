@@ -23,6 +23,23 @@ class EpgCoreTest {
         XmlTvParser.parse(xml.byteInputStream(), channels, "test-source", at)
 
     @Test
+    fun displaysEscapedAndCdataProgrammeNamesAsPlainText() {
+        val target = channel("News")
+        listOf(
+            "Today&apos;s &amp; news",
+            "Today&amp;apos;s &amp;amp; news",
+            "<![CDATA[Today&apos;s &amp; news]]>",
+        ).forEach { title ->
+            val xml = """<tv>
+                <programme channel="News" start="20261002200000 +0800" stop="20261002210000 +0800">
+                  <title>$title</title>
+                </programme>
+            </tv>"""
+            assertEquals("Today's & news", EpgSnapshot(parse(xml, listOf(target))).current(target, now)?.displayTitle)
+        }
+    }
+
+    @Test
     fun normalizesQualityAndPunctuationButPreservesSeparateServices() {
         assertEquals("cctv16", EpgChannelMatcher.normalize("ＣＣＴＶ－１６ 奥林匹克 HD"))
         assertEquals("cctv5+", EpgChannelMatcher.normalize("CCTV-5+ 体育赛事"))

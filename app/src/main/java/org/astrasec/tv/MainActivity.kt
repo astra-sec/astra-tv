@@ -14,6 +14,7 @@ import android.os.Parcelable
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -83,6 +84,11 @@ class MainActivity : Activity(), TvPlayer.Listener {
     }
     private var active = false
     private var panelOpen = true
+    private var menuInputActive = false
+    private val menuIdleTimeoutMs = 30_000L
+    private val hideIdleMenu = Runnable {
+        if (canAutoHideMenu()) showPanel(false)
+    }
     private var refreshing = false
     private var channelListState: Parcelable? = null
     private var settingsListState: Parcelable? = null
@@ -146,6 +152,33 @@ class MainActivity : Activity(), TvPlayer.Listener {
         if (setupView == null && source.isNotBlank()) startPlayback()
     }
 
+    override fun onResume() {
+        super.onResume()
+        menuInputActive = true
+        restartMenuIdleTimeout()
+    }
+
+    override fun onPause() {
+        menuInputActive = false
+        main.removeCallbacks(hideIdleMenu)
+        super.onPause()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Dialogs (especially address editors) must not time out underneath the user.
+        // Returning to the menu starts a fresh 30-second interval.
+        restartMenuIdleTimeout()
+    }
+
+    private fun canAutoHideMenu() =
+        menuInputActive && hasWindowFocus() && panelOpen && setupView == null
+
+    private fun restartMenuIdleTimeout() {
+        main.removeCallbacks(hideIdleMenu)
+        if (canAutoHideMenu()) main.postDelayed(hideIdleMenu, menuIdleTimeoutMs)
+    }
+
     private fun startPlayback() {
         if (!active || setupView != null || source.isBlank()) return
         tvPlayer = TvPlayer(this, this).also {
@@ -165,6 +198,7 @@ class MainActivity : Activity(), TvPlayer.Listener {
 
     override fun onStop() {
         active = false
+        main.removeCallbacks(hideIdleMenu)
         main.removeCallbacks(hideInfo)
         main.removeCallbacks(commitDigits)
         main.removeCallbacks(refreshEpg)
@@ -694,6 +728,7 @@ class MainActivity : Activity(), TvPlayer.Listener {
             }
             info.visibility = View.GONE
         } else { listFocusGeneration++; root.requestFocus(); showInfo() }
+        restartMenuIdleTimeout()
     }
     private fun showInfo(duration: Long = 4500) {
         main.removeCallbacks(hideInfo)
@@ -824,6 +859,8 @@ class MainActivity : Activity(), TvPlayer.Listener {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Include repeat/up events and keys consumed below, not just View-handled input.
+        restartMenuIdleTimeout()
         // Configuration fields own digits, arrows and Back; they are never channel controls.
         if (setupView != null) return super.dispatchKeyEvent(event)
         if (event.action == KeyEvent.ACTION_DOWN && event.keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9) {
@@ -862,6 +899,16 @@ class MainActivity : Activity(), TvPlayer.Listener {
             }
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        restartMenuIdleTimeout()
+        return super.dispatchTouchEvent(event)
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        restartMenuIdleTimeout()
+        return super.dispatchGenericMotionEvent(event)
     }
 
     private inner class SettingsAdapter : BaseAdapter() {

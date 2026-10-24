@@ -55,6 +55,7 @@ class MainActivity : Activity(), TvPlayer.Listener {
     private lateinit var info: LinearLayout
     private lateinit var channelText: TextView
     private lateinit var programmeText: TextView
+    private lateinit var nextProgrammeText: TextView
     private lateinit var decoderText: TextView
     private lateinit var stateText: TextView
     private lateinit var loading: LinearLayout
@@ -81,6 +82,9 @@ class MainActivity : Activity(), TvPlayer.Listener {
     private var epgRefreshing = false
     private val programmeTime = SimpleDateFormat("HH:mm", Locale.CHINA).apply {
         timeZone = TimeZone.getTimeZone("Asia/Shanghai")
+    }
+    private val programmeDate = SimpleDateFormat("M月d日", Locale.CHINA).apply {
+        timeZone = programmeTime.timeZone
     }
     private var active = false
     private var panelOpen = true
@@ -255,9 +259,31 @@ class MainActivity : Activity(), TvPlayer.Listener {
             ellipsize = TextUtils.TruncateAt.END
             setPadding(0, dp(4), 0, dp(3))
         }
-        stateText = text("", 14, 0xFF32D5BB.toInt())
-        decoderText = text("", 12, 0xFF9CAEC4.toInt())
-        info.addView(channelText); info.addView(programmeText); info.addView(stateText); info.addView(decoderText)
+        nextProgrammeText = text("暂无后续节目单", 16, 0xFFB6C6D9.toInt()).apply {
+            setSingleLine()
+            ellipsize = TextUtils.TruncateAt.END
+            setPadding(0, 0, 0, dp(5))
+        }
+        decoderText = text("", 12, 0xFF9CAEC4.toInt()).apply {
+            setSingleLine()
+            ellipsize = TextUtils.TruncateAt.END
+        }
+        stateText = text("", 12, 0xFF32D5BB.toInt()).apply {
+            setSingleLine()
+            ellipsize = TextUtils.TruncateAt.END
+            // Long reconnect messages must leave room for the decoder information.
+            maxWidth = dp(resources.configuration.screenWidthDp / 3)
+        }
+        val playbackDetails = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(decoderText, LinearLayout.LayoutParams(0, -2, 1f))
+            addView(stateText, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(16) })
+        }
+        info.addView(channelText)
+        info.addView(programmeText)
+        info.addView(nextProgrammeText)
+        info.addView(playbackDetails)
         root.addView(info, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
 
         panel = LinearLayout(this).apply {
@@ -620,6 +646,11 @@ class MainActivity : Activity(), TvPlayer.Listener {
     private fun updateProgrammeUi() {
         val now = System.currentTimeMillis()
         programmeText.text = programmeLabel(current?.let { epgSnapshot.current(it, now) })
+        nextProgrammeText.text = current?.let { epgSnapshot.next(it, now) }?.let {
+            val date = programmeDate.format(Date(it.startMs))
+            val datePrefix = if (date == programmeDate.format(Date(now))) "" else "$date "
+            "接下来  $datePrefix${programmeLabel(it)}"
+        } ?: "暂无后续节目单"
         // Updating visible rows keeps the current cursor and scroll position intact.
         for (position in 0 until channelList.childCount) {
             val channel = channels.getOrNull(channelList.firstVisiblePosition + position) ?: continue

@@ -21,4 +21,10 @@ class EpgSnapshot(
         ?.asSequence()
         ?.filter { it.startMs <= nowMs && nowMs < it.endMs && it.title.isNotBlank() }
         ?.maxByOrNull { it.startMs }
+
+    /** Follow start times, including gaps and overlaps in the upstream schedule. */
+    fun next(channel: Channel, nowMs: Long): EpgProgramme? = schedules[channel.id]
+        ?.asSequence()
+        ?.filter { it.startMs > nowMs && it.endMs > it.startMs && it.title.isNotBlank() }
+        ?.minByOrNull { it.startMs }
 }

@@ -166,6 +166,58 @@ class EpgCoreTest {
     }
 
     @Test
+    fun nextFollowsStartTimesThroughOverlapsBoundariesAndGaps() {
+        val target = channel("News")
+        val first = EpgProgramme(1_000, 2_000, "First", "test")
+        val overlap = EpgProgramme(1_500, 2_500, "Overlap", "test")
+        val afterGap = EpgProgramme(3_000, 4_000, "After gap", "test")
+        // Selection should not depend on upstream ordering.
+        val snapshot = EpgSnapshot(mapOf(target.id to listOf(afterGap, first, overlap)))
+        assertEquals(first, snapshot.next(target, 999))
+        assertEquals(overlap, snapshot.next(target, 1_000))
+        assertEquals(overlap, snapshot.next(target, 1_499))
+        assertEquals(overlap, snapshot.current(target, 1_500))
+        assertEquals(afterGap, snapshot.next(target, 1_500))
+        assertNull(snapshot.current(target, 2_500))
+        assertEquals(afterGap, snapshot.next(target, 2_500))
+        assertEquals(afterGap, snapshot.current(target, 3_000))
+        assertNull(snapshot.next(target, 3_000))
+    }
+
+    @Test
+    fun nextIgnoresInvalidEntriesAndMissingSchedules() {
+        val target = channel("News")
+        val next = EpgProgramme(3_000, 4_000, "Next", "test")
+        val snapshot = EpgSnapshot(mapOf(target.id to listOf(
+            EpgProgramme(1_000, 2_000, " ", "test"),
+            EpgProgramme(1_000, 1_000, "Zero duration", "test"),
+            EpgProgramme(1_000, 500, "Reversed", "test"),
+            next,
+        )))
+        assertEquals(next, snapshot.next(target, 500))
+        assertNull(snapshot.next(target, 4_000))
+        assertNull(snapshot.next(channel("Missing"), 500))
+        assertNull(EpgSnapshot(emptyMap()).next(target, 500))
+    }
+
+    @Test
+    fun nextAdvancesAcrossMidnightUsingParsedSchedule() {
+        val target = channel("News")
+        val beforeMidnight = Instant.parse("2026-10-02T15:50:00Z").toEpochMilli()
+        val midnight = Instant.parse("2026-10-02T16:00:00Z").toEpochMilli()
+        val xml = """<tv>
+            <programme channel="News" start="20261002233000 +0800" stop="20261003000000 +0800"><title>Late news</title></programme>
+            <programme channel="News" start="20261003000000 +0800" stop="20261003003000 +0800"><title>Midnight news</title></programme>
+            <programme channel="News" start="20261003003000 +0800" stop="20261003010000 +0800"><title>Weather</title></programme>
+        </tv>"""
+        val snapshot = EpgSnapshot(parse(xml, listOf(target), beforeMidnight))
+        assertEquals("Late news", snapshot.current(target, beforeMidnight)?.title)
+        assertEquals("Midnight news", snapshot.next(target, beforeMidnight)?.title)
+        assertEquals("Midnight news", snapshot.current(target, midnight)?.title)
+        assertEquals("Weather", snapshot.next(target, midnight)?.title)
+    }
+
+    @Test
     fun acceptsStandardXmlTvDtdDeclarationWithoutLoadingIt() {
         val target = channel("News")
         val xml = """

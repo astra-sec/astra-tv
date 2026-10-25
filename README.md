@@ -10,7 +10,7 @@ Astra TV 是用 Kotlin 编写的 Android / Android TV IPTV 客户端，包名和
 
 安装 `astra-tv-0.4.2.apk`。首次打开填写 HTTP/HTTPS 的 M3U 频道列表地址；直播源没有预设值，安装包不内置频道列表。节目单使用一个可配置的 XMLTV 地址，支持 XML 或 XML.gz，默认值是：
 
-`http://epg.51zmt.top:8000/e.xml.gz`
+`https://epg.zsdc.eu.org/t.xml.gz`（suzukua）
 
 节目单可以留空关闭。确认配置前不下载频道或节目单，也不启动播放。无效地址会保留输入并提示修正；遥控器数字和左右键用于输入，上下键依次切换字段和保存按钮。
 
@@ -29,7 +29,7 @@ Astra TV 是用 Kotlin 编写的 Android / Android TV IPTV 客户端，包名和
 
 ## 节目单
 
-频道列表第二行与换台底栏显示当前节目和北京时间播出时段，节目边界自动更新。换台底栏另用一行较小的文字显示下一节目，跨天时带上日期；没有后续数据时显示“暂无后续节目单”。解码信息与播放状态合并在底部一行。仅使用设置的单一来源，不聚合或自动切换其他服务。匹配使用 `tvg-id`、`tvg-name` 和保守的频道别名；没有匹配或排期过期时显示“暂无节目单”。4K、国际版本及不同服务会明确区分。
+频道列表第二行与换台底栏显示当前节目和北京时间播出时段，节目边界自动更新。换台底栏左侧分三行显示频道、当前节目和字号略小的下一节目，跨天时带上日期；没有后续数据时显示“暂无后续节目单”。右侧以四行直接显示播放状态、分辨率、视频解码器名称、音频解码器名称，不加文字标签；各行位置和宽度固定，缺少解码信息时用“—”占位，避免加载过程中内容互相挤动。仅使用设置的单一来源，不聚合或自动切换其他服务。匹配使用 `tvg-id`、`tvg-name` 和保守的频道别名；没有匹配或排期过期时显示“暂无节目单”。4K、国际版本及不同服务会明确区分。
 
 节目单在后台流式解析，每 6 小时检查更新，跨日或排期耗尽时提前刷新。失败保留有效缓存并隔 10 分钟重试；重新保存地址可立即重试。更新不改变频道焦点、滚动位置或底栏显示状态。实际覆盖取决于所选直播源和节目单内容。
 
@@ -46,8 +46,10 @@ Astra TV 是用 Kotlin 编写的 Android / Android TV IPTV 客户端，包名和
 需要 JDK 17 或 21、Android SDK platform 35 及对应 build-tools。用 Android Studio 打开项目，或运行：
 
 ```sh
-./gradlew :app:assembleRelease :app:testDebugUnitTest :app:lintRelease
+./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 ```
+
+调试 APK 生成于 `app/build/outputs/apk/debug/app-debug.apk`，使用 Android 开发签名，无需发行版密钥。
 
 通过本地 `local.properties` 的 `sdk.dir` 或 `ANDROID_HOME` 指定 SDK。项目包含 ARM64、ARMv7 的 FFmpeg JNI 音频库，普通 APK 构建无需重编原生库。`third_party/ffmpeg` 是官方 FFmpeg 仓库的子模块，固定为 6.0.1（`n6.0.1`）。首次获取项目：
 
@@ -64,27 +66,6 @@ ANDROID_NDK_ROOT=/path/to/android-ndk ./scripts/build-ffmpeg.sh
 
 脚本包含完整 configure 与链接参数，使用 NDK r27、API 21 和 16 KiB ELF 对齐。生成的配置快照属于本机构建产物，不进入版本控制；对应源码及重建步骤完整保留。Media3 Java/JNI 桥代码和许可在 `ffmpeg-audio`。
 
-### GitHub Actions 自动构建
+测试使用 `example.test` 的通用 M3U 样例，覆盖地址解析、元数据、重复频道、节目单格式、匹配、版本隔离和失效边界。
 
-推送到 `main`、向 `main` 提交 Pull Request，或在仓库的 Actions → Android build 中点击 Run workflow，会使用 Ubuntu、JDK 21 和 Android SDK 35 自动构建 APK，并运行单元测试及 release Lint。常规构建使用仓库已有的 ARM 原生音频库，无需拉取或编译 FFmpeg 子模块。
-
-构建成功后，在对应运行页面的 Artifacts 中下载 APK 压缩包，包含按版本号和提交号命名的 APK、SHA256 校验文件及构建信息，保留 30 天。测试和 Lint 报告单独保存 14 天，构建失败时也会尽量上传已有报告。
-
-`main` 的自动构建使用固定的 Astra Sec 正式签名，产物中的 APK 可直接安装。构建会验证签名及公开证书指纹，缺少签名 Secrets 时会报错。Pull Request 构建不使用密钥，只生成需要自行签名的 `-unsigned.apk`。
-
-如需让 `main` 的自动构建直接生成可安装、可持续升级的包，在仓库 Settings → Secrets and variables → Actions 中配置以下 repository secrets：
-
-| Secret | 内容 |
-| --- | --- |
-| `ASTRA_SIGNING_KEYSTORE_BASE64` | 签名 keystore 文件的 Base64 内容 |
-| `ASTRA_SIGNING_STORE_PASSWORD` | keystore 密码 |
-| `ASTRA_SIGNING_KEY_ALIAS` | 密钥 alias |
-| `ASTRA_SIGNING_KEY_PASSWORD` | 密钥密码 |
-
-只有 `main` 的 push 或手动构建会使用这些密钥；Pull Request 始终生成未签名包。密钥只在 runner 临时目录还原，工作结束后删除。后续更新持续使用同一签名；从原有开发签名迁移时，先记录直播源、节目单地址及设置，卸载旧版本，再安装正式包并重新输入配置。
-
-本地 release 默认读取仓库外的 `~/.android/astra-sec/signing.properties`，采用同一套正式签名；缺少配置时会报错，不会回退到开发签名。也可设置四个 `ASTRA_SIGNING_*` 环境变量覆盖本地配置，或使用 `./gradlew :app:assembleRelease -PastraUnsigned=true` 显式生成未签名包。配置方式、公开证书、备份和恢复方法见[签名管理说明](docs/signing/README.md)。
-
-测试使用 `example.test` 的通用 M3U 样例，覆盖地址解析、元数据、重复频道、节目单格式、匹配、版本隔离和失效边界。设备验证报告保存在本地 `diagnostics/`，不纳入 Git 或源码包。
-
-release 使用 Astra Sec 正式签名，debug 构建仍使用 Android 开发签名。签名私钥和密码不在仓库中。
+自行签名或验证发行版 APK，可参考[APK 签名与校验](docs/signing/README.md)。

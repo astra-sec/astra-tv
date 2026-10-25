@@ -201,7 +201,7 @@ class EpgRepository(context: Context) {
         nowMs: Long,
     ): Map<String, List<EpgProgramme>> {
         var currentUrl = validateUrl(sourceUrl)
-        val deadlineMs = SystemClock.elapsedRealtime() + NETWORK_BUDGET_MS
+        val deadlineMs = SystemClock.elapsedRealtime() + REFRESH_BUDGET_MS
         repeat(MAX_REDIRECTS + 1) { hop ->
             if (SystemClock.elapsedRealtime() >= deadlineMs) throw IOException("节目单请求超时")
             val connection = currentUrl.openConnection() as HttpURLConnection
@@ -326,7 +326,7 @@ class EpgRepository(context: Context) {
     }
 
     companion object {
-        const val DEFAULT_URL = "http://epg.51zmt.top:8000/e.xml.gz"
+        const val DEFAULT_URL = "https://epg.zsdc.eu.org/t.xml.gz"
         private const val TAG = "AstraTV"
         private const val CACHE_SCHEMA = 1
         private const val DAY_MS = 24L * 60 * 60 * 1_000
@@ -336,7 +336,8 @@ class EpgRepository(context: Context) {
         private const val FUTURE_WINDOW_MS = 36L * 60 * 60 * 1_000
         private const val CONNECT_TIMEOUT_MS = 3_000
         private const val READ_TIMEOUT_MS = 4_000
-        private const val NETWORK_BUDGET_MS = 12_000L
+        // The streaming deadline also covers XML parsing on slower television CPUs.
+        private const val REFRESH_BUDGET_MS = 45_000L
         private const val MAX_REDIRECTS = 4
         private const val MAX_DOWNLOAD_BYTES = 8 * 1024 * 1024
         private const val MAX_EXPANDED_BYTES = 24 * 1024 * 1024

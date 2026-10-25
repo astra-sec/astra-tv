@@ -37,10 +37,11 @@ import org.astrasec.tv.playlist.Channel
 @UnstableApi
 class TvPlayer(context: Context, private val listener: Listener) {
     data class DecoderChoice(val name: String, val label: String)
+    data class DecoderInfo(val videoDecoder: String, val videoDimensions: String, val audioDecoder: String)
 
     interface Listener {
         fun onState(text: String, buffering: Boolean)
-        fun onDecoderInfo(text: String)
+        fun onDecoderInfo(info: DecoderInfo)
         fun onVideoReady()
     }
 
@@ -84,7 +85,8 @@ class TvPlayer(context: Context, private val listener: Listener) {
         failedVideoDecoders.clear()
         rebuildOnReconnect = false
         currentChannel = channel
-        resetDecoderInfo()
+        // A new channel can reuse the live codecs without another initialization event.
+        resetDecoderInfo(clearDecoders = false)
         prepareChannel(channel)
     }
 
@@ -231,6 +233,10 @@ class TvPlayer(context: Context, private val listener: Listener) {
                 if (!active()) return
                 if (!firstFrameReported) {
                     firstFrameReported = true
+                    // Reused codecs may keep the same size without another size-change event.
+                    val size = instance.videoSize
+                    videoDimensions = if (size.width > 0) "${size.width} × ${size.height}" else ""
+                    reportDecoderInfo()
                     cancelWatchdog()
                     listener.onState("正在播放", false)
                     armStablePlaybackReset()
@@ -259,6 +265,18 @@ class TvPlayer(context: Context, private val listener: Listener) {
                 if (!active()) return
                 audioDecoder = decoderName
                 reportDecoderInfo()
+            }
+
+            override fun onVideoDecoderReleased(eventTime: AnalyticsListener.EventTime, decoderName: String) {
+                if (released || playerGeneration != instanceGeneration || videoDecoder != decoderName) return
+                videoDecoder = ""
+                if (active()) reportDecoderInfo()
+            }
+
+            override fun onAudioDecoderReleased(eventTime: AnalyticsListener.EventTime, decoderName: String) {
+                if (released || playerGeneration != instanceGeneration || audioDecoder != decoderName) return
+                audioDecoder = ""
+                if (active()) reportDecoderInfo()
             }
         })
     }
@@ -404,20 +422,18 @@ class TvPlayer(context: Context, private val listener: Listener) {
         handler.postDelayed(task, 30_000)
     }
 
-    private fun resetDecoderInfo() {
-        videoDecoder = ""
-        audioDecoder = ""
+    private fun resetDecoderInfo(clearDecoders: Boolean = true) {
+        if (clearDecoders) {
+            videoDecoder = ""
+            audioDecoder = ""
+        }
         videoDimensions = ""
         firstFrameReported = false
-        listener.onDecoderInfo("等待解码器…")
+        reportDecoderInfo()
     }
 
     private fun reportDecoderInfo() {
-        val details = mutableListOf<String>()
-        if (videoDecoder.isNotEmpty()) details += "视频：$videoDecoder"
-        if (videoDimensions.isNotEmpty()) details += videoDimensions
-        if (audioDecoder.isNotEmpty()) details += "音频：$audioDecoder"
-        listener.onDecoderInfo(details.joinToString("  ·  ").ifEmpty { "等待解码器…" })
+        listener.onDecoderInfo(DecoderInfo(videoDecoder, videoDimensions, audioDecoder))
     }
 
     private fun cancelWatchdog() {

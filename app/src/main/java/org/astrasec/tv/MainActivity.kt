@@ -56,7 +56,9 @@ class MainActivity : Activity(), TvPlayer.Listener {
     private lateinit var channelText: TextView
     private lateinit var programmeText: TextView
     private lateinit var nextProgrammeText: TextView
-    private lateinit var decoderText: TextView
+    private lateinit var resolutionText: TextView
+    private lateinit var videoStatusText: TextView
+    private lateinit var audioStatusText: TextView
     private lateinit var stateText: TextView
     private lateinit var loading: LinearLayout
     private lateinit var loadingText: TextView
@@ -249,11 +251,15 @@ class MainActivity : Activity(), TvPlayer.Listener {
         root.addView(loading, FrameLayout.LayoutParams(dp(360), -2, Gravity.CENTER))
 
         info = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.BOTTOM
             setPadding(dp(26), dp(16), dp(26), dp(18))
             background = GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, intArrayOf(0xF5070B12.toInt(), 0xB0070B12.toInt(), Color.TRANSPARENT))
         }
-        channelText = text(getString(R.string.app_name), 25, bold = true)
+        channelText = text(getString(R.string.app_name), 25, bold = true).apply {
+            setSingleLine()
+            ellipsize = TextUtils.TruncateAt.END
+        }
         programmeText = text("暂无节目单", 18, 0xFFE1EBF5.toInt()).apply {
             setSingleLine()
             ellipsize = TextUtils.TruncateAt.END
@@ -262,28 +268,39 @@ class MainActivity : Activity(), TvPlayer.Listener {
         nextProgrammeText = text("暂无后续节目单", 16, 0xFFB6C6D9.toInt()).apply {
             setSingleLine()
             ellipsize = TextUtils.TruncateAt.END
-            setPadding(0, 0, 0, dp(5))
         }
-        decoderText = text("", 12, 0xFF9CAEC4.toInt()).apply {
+        fun detailText(label: String, color: Int = 0xFF9CAEC4.toInt()) = text(label, 12, color).apply {
             setSingleLine()
             ellipsize = TextUtils.TruncateAt.END
+            gravity = Gravity.RIGHT
         }
-        stateText = text("", 12, 0xFF32D5BB.toInt()).apply {
-            setSingleLine()
-            ellipsize = TextUtils.TruncateAt.END
-            // Long reconnect messages must leave room for the decoder information.
-            maxWidth = dp(resources.configuration.screenWidthDp / 3)
+        stateText = detailText("—", 0xFF32D5BB.toInt())
+        resolutionText = detailText("—")
+        videoStatusText = detailText("—")
+        audioStatusText = detailText("—")
+        val programmeColumn = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(channelText)
+            addView(programmeText)
+            addView(nextProgrammeText)
         }
-        val playbackDetails = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            addView(decoderText, LinearLayout.LayoutParams(0, -2, 1f))
-            addView(stateText, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(16) })
+        val detailsColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        fun addDetailRow(value: TextView) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                minimumHeight = dp(18)
+                // Keep the existing value column's width and position without visible labels.
+                addView(value, LinearLayout.LayoutParams(0, -2, 1f).apply { leftMargin = dp(64) + dp(12) })
+            }
+            detailsColumn.addView(row, LinearLayout.LayoutParams(-1, -2))
         }
-        info.addView(channelText)
-        info.addView(programmeText)
-        info.addView(nextProgrammeText)
-        info.addView(playbackDetails)
+        addDetailRow(stateText)
+        addDetailRow(resolutionText)
+        addDetailRow(videoStatusText)
+        addDetailRow(audioStatusText)
+        info.addView(programmeColumn, LinearLayout.LayoutParams(0, -2, 3f))
+        info.addView(detailsColumn, LinearLayout.LayoutParams(0, -2, 2f).apply { leftMargin = dp(24) })
         root.addView(info, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
 
         panel = LinearLayout(this).apply {
@@ -578,7 +595,9 @@ class MainActivity : Activity(), TvPlayer.Listener {
         autoCloseOnFirstFrame = !panelOpen || (autoCloseOnFirstFrame && menuPage == MenuPage.CHANNELS)
         prefs.edit().putString("lastChannel", key(c)).apply()
         updateChannelTitle()
-        decoderText.text = ""
+        resolutionText.text = "—"
+        videoStatusText.text = "—"
+        audioStatusText.text = "—"
         stateText.text = "正在连接直播"
         showInfo(0)
         adapter.notifyDataSetChanged()
@@ -820,7 +839,9 @@ class MainActivity : Activity(), TvPlayer.Listener {
                     current = null
                     channelListState = null
                     channelText.text = getString(R.string.app_name)
-                    decoderText.text = ""
+                    resolutionText.text = "—"
+                    videoStatusText.text = "—"
+                    audioStatusText.text = "—"
                     loadingText.text = "正在读取频道…"
                     spinner.visibility = View.VISIBLE
                     loading.visibility = View.VISIBLE
@@ -876,10 +897,12 @@ class MainActivity : Activity(), TvPlayer.Listener {
         if (buffering) showInfo(0) else showInfo()
         android.util.Log.i("AstraTV", "STATE $text")
     }
-    override fun onDecoderInfo(text: String) {
+    override fun onDecoderInfo(info: TvPlayer.DecoderInfo) {
         if (!active || setupView != null) return
-        decoderText.text = text
-        android.util.Log.i("AstraTV", "DECODER $text")
+        resolutionText.text = info.videoDimensions.ifBlank { "—" }
+        videoStatusText.text = info.videoDecoder.ifBlank { "—" }
+        audioStatusText.text = info.audioDecoder.ifBlank { "—" }
+        android.util.Log.i("AstraTV", "DECODER 视频：${videoStatusText.text}  ·  ${resolutionText.text}  ·  音频：${audioStatusText.text}")
     }
     override fun onVideoReady() {
         if (!active || setupView != null) return
